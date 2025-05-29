@@ -1,0 +1,36 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate random number
+        id: generate
+        run: |
+          RANDOM_ID=$(openssl rand -hex 4)
+          echo "Generated random number: $RANDOM_ID"
+          echo "RANDOM_ID=$RANDOM_ID" >> $GITHUB_ENV
+
+      - name: Replace placeholder in mypod.yaml with the random number
+        run: |
+          cp mypod.yaml mypod-temp.yaml
+          sed -i "s/{ID}/${RANDOM_ID}/g" mypod-temp.yaml
+          echo "Modified mypod.yaml file:"
+          cat mypod-temp.yaml
+
+      - name: Apply updated manifest to Kubernetes
+        run: |
+          kubectl apply -f mypod-temp.yaml
+
+      - name: Check Pods in Namespace
+        run: |
+          kubectl get pods -n default
